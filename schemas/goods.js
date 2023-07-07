@@ -22,6 +22,7 @@ const goodsSchema = new mongoose.Schema(
       type: Number,
     },
   },
+  { strictPopulate: false },
   { versionKey: false }
 );
 
