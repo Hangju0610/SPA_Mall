@@ -6,14 +6,23 @@ const router = express.Router();
 const User = require('../schemas/user');
 const Refresh = require('../schemas/refreshToken');
 
+// 아이디 및 비밀번호 검사
+const findAndValidate = async (email, password) => {
+  try {
+    const findUser = await User.findOne({ email });
+    const validPassword = await bcrypt.compare(password, findUser.password);
+    return findUser;
+  } catch (err) {
+    return false;
+  }
+};
+
 router.post('/', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const findUser = await User.findOne({ email }).exec();
-
-    const validPassword = await bcrypt.compare(password, findUser.password);
-    if (!findUser || !validPassword) {
+    const findUser = await findAndValidate(email, password);
+    if (!findUser) {
       return res
         .status(400)
         .json({ errorMessage: '이메일이나 비밀번호가 올바르지 않습니다.' });
@@ -33,7 +42,7 @@ router.post('/', async (req, res) => {
     const findRefreshToken = await Refresh.find({ userId: findUser.userId });
     // console.log(findRefreshToken);
 
-    // DB에 userId가 있는 경우
+    // Refresh DB에 userId가 있는 경우
     if (findRefreshToken) {
       await Refresh.updateOne(
         { userId: findUser.userId },

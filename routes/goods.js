@@ -1,10 +1,79 @@
 const express = require('express');
 const Goods = require('../schemas/goods');
 const Cart = require('../schemas/cart');
+const authMiddleware = require('../middlewares/auth-middleware');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.get('/cart', authMiddleware, async (_, res) => {
+  try {
+    const { userId } = res.locals.user;
+    const carts = await Cart.find({ userId }).exec();
+    const goodsIds = carts.map((cart) => cart.goodsId);
+
+    const goods = await Goods.find({ goodsId: goodsIds }).exec();
+
+    const results = carts.map((cart) => {
+      return {
+        quantity: cart.quantity,
+        goods: goods.find((item) => item.goodsId === cart.goodsId),
+      };
+    });
+
+    res.status(200).json({ carts: results });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ errorMessage: '서버 에러' });
+  }
+});
+
+router.get('/goods', async (req, res) => {
+  try {
+    const { category } = req.query;
+    // 3항 연산자
+    const goods = await Goods.find(category ? { category } : {})
+      .sort('-data')
+      .exec();
+
+    const results = goods.map((item) => {
+      return {
+        goodsId: item.goodsId,
+        name: item.name,
+        price: item.price,
+        thumbnailUrl: item.thumbnailUrl,
+        category: item.category,
+      };
+    });
+    res.status(200).json({ goods: results });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ errorMessage: '서버 에러' });
+  }
+});
+
+router.get('/goods/:goodsId', async (req, res) => {
+  try {
+    const { goodsId } = req.params;
+    const goods = await Goods.findOne({ goodsId }).exec();
+
+    if (!goods)
+      return res.status(404).json({ errorMessage: '없는 목록입니다.' });
+    const result = {
+      goodsId: goods.goodsId,
+      name: goods.name,
+      price: goods.price,
+      thumbnailUrl: goods.thumbnailUrl,
+      category: goods.category,
+    };
+
+    res.status(200).json({ goods: result });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ errorMessage: '서버 에러' });
+  }
+});
+
+router.post('/goods', async (req, res) => {
   try {
     const { goodsId, name, thumbnailUrl, category, price } = req.body;
 
@@ -28,33 +97,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/carts', async (_, res) => {
+router.post('/goods/:goodsId/cart', authMiddleware, async (req, res) => {
   try {
-    const carts = await Cart.find().exec();
-    const goodsIds = carts.map((cart) => cart.goodsId);
-
-    const goods = await Goods.find({ goodsId: goodsIds }).exec();
-
-    const results = carts.map((cart) => {
-      return {
-        quantity: cart.quantity,
-        goods: goods.find((item) => item.goodsId === cart.goodsId),
-      };
-    });
-
-    res.status(200).json({ results });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ errorMessage: '서버 에러' });
-  }
-});
-
-router.post('/:goodsId/cart', async (req, res) => {
-  try {
+    const { userId } = res.locals.user;
     const { goodsId } = req.params;
     const { quantity } = req.body;
 
-    const existsCarts = await Cart.find({ goodsId: Number(goodsId) }).exec();
+    const existsCarts = await Cart.find({ userId, goodsId }).exec();
     if (existsCarts.length) {
       return res.status(400).json({
         success: false,
@@ -62,9 +111,10 @@ router.post('/:goodsId/cart', async (req, res) => {
       });
     }
     const cart = await Cart.create({
-      goodsId: Number(goodsId),
+      userId,
+      goodsId,
       quantity,
-    }).exec();
+    });
     res.status(200).json({ cart });
   } catch (err) {
     console.log(err);
@@ -72,8 +122,9 @@ router.post('/:goodsId/cart', async (req, res) => {
   }
 });
 
-router.put('/:goodsId/cart', async (req, res) => {
+router.put('/goods/:goodsId/cart', authMiddleware, async (req, res) => {
   try {
+    const { userId } = res.locals.user;
     const { goodsId } = req.params;
     const { quantity } = req.body;
 
@@ -83,27 +134,28 @@ router.put('/:goodsId/cart', async (req, res) => {
         .json({ errorMessage: '상품 수량이 0은 없습니다.' });
     }
 
-    const existsCarts = await Cart.find({ goodsId: Number(goodsId) }).exec();
+    const existsCarts = await Cart.find({ userId, goodsId }).exec();
     if (existsCarts.length) {
-      const updateCart = await Cart.updateOne(
-        { goodsId: Number(goodsId) },
+      await Cart.updateOne(
+        { userId, goodsId: goodsId },
         { $set: { quantity } }
       ).exec();
     }
-    res.status(201).json(updateCart);
+    res.status(201).json({ success: true });
   } catch (err) {
     console.log(err);
     res.status(500).json({ errorMessage: '서버 에러' });
   }
 });
 
-router.delete('/:goodsId/cart', async (req, res) => {
+router.delete('/goods/:goodsId/cart', authMiddleware, async (req, res) => {
   try {
+    const { userId } = res.locals.user;
     const { goodsId } = req.params;
 
     const existsCarts = await Cart.find({ goodsId });
     if (existsCarts.length > 0) {
-      await Cart.deleteOne({ goodsId }).exec();
+      await Cart.deleteOne({ userId, goodsId }).exec();
     }
     res.status(200).json({ message: '삭제 완료' });
   } catch (err) {

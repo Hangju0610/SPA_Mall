@@ -30,52 +30,52 @@ function postOrder(user, order) {
 
 function getSelf(callback) {
   $.ajax({
-    type: "GET",
-    url: "/api/users/me",
+    type: 'GET',
+    url: '/api/users/me',
     success: function (response) {
       callback(response.user);
     },
     error: function (xhr, status, error) {
       if (status == 401) {
-        alert("로그인이 필요합니다.");
+        alert('로그인이 필요합니다.');
       } else {
         localStorage.clear();
-        alert("알 수 없는 문제가 발생했습니다. 관리자에게 문의하세요.");
+        alert('알 수 없는 문제가 발생했습니다. 관리자에게 문의하세요.');
       }
-      window.location.href = "/";
+      window.location.href = '/';
     },
   });
 }
 
 function getGoods(category, callback) {
-  $("#goodsList").empty();
+  $('#goodsList').empty();
   $.ajax({
-    type: "GET",
-    url: `/api/goods${category ? "?category=" + category : ""}`,
+    type: 'GET',
+    url: `/api/goods${category ? '?category=' + category : ''}`,
     success: function (response) {
-      callback(response["goods"]);
+      callback(response['goods']);
     },
   });
 }
 
 function signOut() {
   localStorage.clear();
-  window.location.href = "/";
+  window.location.href = '/';
 }
 
 function getGoodsDetail(goodsId, callback) {
   $.ajax({
-    type: "GET",
+    type: 'GET',
     url: `/api/goods/${goodsId}`,
     error: function (xhr, status, error) {
       if (status == 401) {
-        alert("로그인이 필요합니다.");
+        alert('로그인이 필요합니다.');
       } else if (status == 404) {
-        alert("존재하지 않는 상품입니다.");
+        alert('존재하지 않는 상품입니다.');
       } else {
-        alert("알 수 없는 문제가 발생했습니다. 관리자에게 문의하세요.");
+        alert('알 수 없는 문제가 발생했습니다. 관리자에게 문의하세요.');
       }
-      window.location.href = "/goods";
+      window.location.href = '/goods';
     },
     success: function (response) {
       callback(response.goods);
@@ -88,27 +88,27 @@ function makeBuyNotification(targetNickname, goodsName, goodsId, date) {
     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
         <span aria-hidden="true">&times;</span>
     </button>`;
-  const alt = $("#customerAlert");
+  const alt = $('#customerAlert');
   if (alt.length) {
     alt.html(messageHtml);
   } else {
     const htmlTemp = `<div class="alert alert-sparta alert-dismissible show fade" role="alert" id="customerAlert">${messageHtml}</div>`;
-    $("body").append(htmlTemp);
+    $('body').append(htmlTemp);
   }
 }
 
 function addToCart(goodsId, quantity, callback) {
   $.ajax({
-    type: "POST",
+    type: 'POST',
     url: `/api/goods/${goodsId}/cart`,
     data: {
       quantity,
     },
     error: function (xhr, status, error) {
       if (status == 400) {
-        alert("존재하지 않는 상품입니다.");
+        alert('존재하지 않는 상품입니다.');
       }
-      window.location.href = "/goods.html";
+      window.location.href = '/goods.html';
     },
     success: function () {
       callback();
@@ -118,16 +118,16 @@ function addToCart(goodsId, quantity, callback) {
 
 function changeToCart(goodsId, quantity, callback) {
   $.ajax({
-    type: "PUT",
+    type: 'PUT',
     url: `/api/goods/${goodsId}/cart`,
     data: {
       quantity,
     },
     error: function (xhr, status, error) {
       if (status == 400) {
-        alert("존재하지 않는 상품입니다.");
+        alert('존재하지 않는 상품입니다.');
       }
-      window.location.href = "/goods.html";
+      window.location.href = '/goods.html';
     },
     success: function () {
       callback();
@@ -136,14 +136,14 @@ function changeToCart(goodsId, quantity, callback) {
 }
 
 function buyLocation(params) {
-  sessionStorage.setItem("ordered", JSON.stringify(params));
-  location.href = "order.html";
+  sessionStorage.setItem('ordered', JSON.stringify(params));
+  location.href = 'order.html';
 }
 
 function getCarts(callback) {
   $.ajax({
-    type: "GET",
-    url: `/api/goods/cart`,
+    type: 'GET',
+    url: `/api/cart`,
     success: function (response) {
       callback(response.carts);
     },
@@ -152,7 +152,7 @@ function getCarts(callback) {
 
 function deleteCart(goodsId, callback) {
   $.ajax({
-    type: "DELETE",
+    type: 'DELETE',
     url: `/api/goods/${goodsId}/cart`,
     success: function () {
       callback();
